@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post in detail</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <h2>Here Is Your Post Detail</h2>
+    <p>Post id: <%= post.id %></p>
+    <div class="post detailed-post">
+        <h3 class="user">@<%= post.username %></h3>
+        <h4><%= post.content %></h4>
+        <p class="timestamp">Created At: <%= new Date(post.createdAt).toLocaleDateString() %> <%= new Date(post.createdAt).toLocaleTimeString() %></p>
+        <div class="post-actions">
+            <span class="likes-count"><%= post.likes %> Likes</span>
+            <form method="post" action="/posts/<%=post.id%>/like">
+                <button class="like-button">Like</button>
+            </form>
+            <br>
+            <a href="http://localhost:8081/posts/<%=post.id%>/edit">Edit</a>
+            <form method="post" action="/posts/<%=post.id%>?_method=DELETE">
+                <button>DELETE Post</button>
+            </form>
+        </div>
+    </div>
+    <br>
+    <a href="http://localhost:8081/posts">Back to All Posts</a>
+</body>
+</html>

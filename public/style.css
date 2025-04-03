@@ -1,0 +1,396 @@
+h1 {
+    color: brown;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(45deg, #a78cd9, #67b7e0, #a78cd9, #67b7e0);
+    background-size: 400% 400%;
+    animation: gradientAnimation 10s ease infinite;
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.post {
+    background-color: aliceblue;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(24, 133, 115, 0.2);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    position: relative; /* For positioning like button */
+}
+
+.post:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(24, 133, 115, 0.3);
+}
+
+.username {
+    color: blue;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.content {
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.timestamp {
+    color: #777;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.post a {
+    display: inline-block;
+    margin-right: 10px;
+    padding: 8px 12px;
+    text-decoration: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.post a:hover {
+    background-color: #0056b3;
+}
+
+.post form {
+    display: inline;
+}
+
+.post form button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+    margin-left: 5px;
+}
+
+.post form button:hover {
+    background-color: #c82333;
+    transform: scale(1.05);
+}
+
+.edit-form-container,
+.create-form-container {
+    max-width: 600px;
+    margin: 3rem auto;
+    padding: 2.5rem;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #ddd;
+}
+
+.edit-form-container h1,
+.create-form-container h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+.edit-form-container label,
+.create-form-container label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+.edit-form-container input[type="text"],
+.edit-form-container textarea,
+.create-form-container input[type="text"],
+.create-form-container textarea {
+    width: calc(100% - 20px);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.edit-form-container input[type="text"]:focus,
+.edit-form-container textarea:focus,
+.create-form-container input[type="text"]:focus,
+.create-form-container textarea:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.edit-form-container textarea,
+.create-form-container textarea {
+    resize: vertical;
+    min-height: 180px;
+}
+
+.edit-form-container button,
+.create-form-container button {
+    width: 100%;
+    padding: 1rem;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+}
+
+.edit-form-container button:hover,
+.create-form-container button:hover {
+    background-color: #0056b3;
+    transform: scale(1.02);
+}
+
+body > a {
+    display: inline-block;
+    padding: 10px 15px;
+    text-decoration: none;
+    background-color: #28a745;
+    color: white;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+    margin-top: 20px;
+}
+
+body > a:hover {
+    background-color: #1e7e34;
+    transform: scale(1.05);
+}
+
+/* Post Actions Container */
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.like-button {
+    background-color: #008000; /* Green color for like button */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+}
+
+.like-button:hover {
+    background-color: #006400;
+    transform: scale(1.1);
+}
+
+.likes-count {
+    color: #333;
+    font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .post {
+        padding: 10px;
+        margin: 10px 0;
+    }
+
+    .edit-form-container,
+    .create-form-container {
+        padding: 1.5rem;
+        margin: 2rem auto;
+    }
+
+    .post-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .post-actions a,
+    .post-actions form,
+    .post-actions span {
+        margin-bottom: 5px;
+    }
+
+    .post form button,
+    .post-actions .like-button {
+        width: 100%; /* Make buttons full width on smaller screens */
+    }
+}
+
+/* Subtle Animations */
+.like-button {
+    animation: pulse 2s infinite alternate;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
+}
+
+.post {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+/* ... your existing CSS ... */
+
+@keyframes float {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateY(20px) translateX(30px) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) translateX(0) rotate(360deg);
+        opacity: 0.7;
+    }
+}
+h1 {
+    color: brown;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(45deg, #a78cd9, #67b7e0, #a78cd9, #67b7e0);
+    background-size: 400% 400%;
+    animation: gradientAnimation 10s ease infinite;
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* ... other styles for posts, forms, etc. ... */
+
+/* ... your existing CSS ... */
+
+@keyframes moveShapes {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+    }
+    50% {
+        transform: translate(50px, 30px) scale(1.2);
+        opacity: 0.05;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+    }
+}
+/* ... your existing CSS ... */
+
+.shape {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+    border-radius: 50%;
+    animation: moveShapes 15s linear infinite; /* Default animation duration */
+}
+
+/* Varying animation durations for different shapes */
+.shape:nth-child(odd) {
+    animation-duration: 12s;
+}
+
+.shape:nth-child(even) {
+    animation-duration: 18s;
+}
+
+@keyframes moveShapes {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+    }
+    50% {
+        transform: translate(50px, 30px) scale(1.2);
+        opacity: 0.05;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+    }
+}
+/* ... your existing CSS ... */
+
+.shape {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+    border-radius: 50%;
+    animation: moveShapes 15s linear infinite; /* Default animation duration */
+}
+
+/* Varying animation durations for different shapes */
+.shape:nth-child(odd) {
+    animation-duration: 12s;
+}
+
+.shape:nth-child(even) {
+    animation-duration: 18s;
+}
+
+@keyframes moveShapes {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(50px, 30px) scale(1.2);
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+}
