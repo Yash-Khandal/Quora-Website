@@ -5,42 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ALL POSTS</title>
     <link rel="stylesheet" href="/style.css">
-    <script src="/socket.io/socket.io.js"></script> <script>
-        const socket = io(); // Establish connection with the server
-
-        socket.on('newPost', (newPost) => {
-            const postsContainer = document.querySelector('body'); // Or a more specific container
-            const newPostDiv = document.createElement('div');
-            newPostDiv.classList.add('post', 'newly-added'); // Add the 'newly-added' class
-            newPostDiv.innerHTML = `
-                <h3 class="username">@${newPost.username}</h3>
-                <h4 class="content">${newPost.content}</h4>
-                <p class="timestamp">Created At: ${new Date(newPost.createdAt).toLocaleDateString()} ${new Date(newPost.createdAt).toLocaleTimeString()}</p>
-                <div class="post-actions">
-                    <a href="http://localhost:8081/posts/${newPost.id}">See in detail</a>
-                    <a href="http://localhost:8081/posts/${newPost.id}/edit">Edit</a>
-                    <form method="post" action="/posts/${newPost.id}?_method=DELETE">
-                        <button>DELETE Post</button>
-                    </form>
-                    <span class="likes-count">${newPost.likes} Likes</span>
-                    <form method="post" action="/posts/${newPost.id}/like">
-                        <button class="like-button">Like</button>
-                    </form>
-                </div>
-            `;
-            const existingPosts = postsContainer.querySelectorAll('.post');
-            if (existingPosts.length > 0) {
-                postsContainer.insertBefore(newPostDiv, existingPosts[0]);
-            } else {
-                postsContainer.appendChild(newPostDiv);
-            }
-
-            // Optional: Remove the class after a short delay to allow the animation to play once
-            setTimeout(() => {
-                newPostDiv.classList.remove('newly-added');
-            }, 1000); // Adjust the duration as needed
-        });
-    </script>
 </head>
 <body>
     <h1>Quora Posts</h1>
@@ -50,8 +14,8 @@
             <h4 class="content"><%= post.content %></h4>
             <p class="timestamp">Created At: <%= new Date(post.createdAt).toLocaleDateString() %> <%= new Date(post.createdAt).toLocaleTimeString() %></p>
             <div class="post-actions">
-                <a href="http://localhost:8081/posts/<%=post.id%>">See in detail</a>
-                <a href="http://localhost:8081/posts/<%=post.id%>/edit">Edit</a>
+                <a href="/posts/<%=post.id%>">See in detail</a>
+                <a href="/posts/<%=post.id%>/edit">Edit</a>
                 <form method="post" action="/posts/<%=post.id%>?_method=DELETE">
                     <button>DELETE Post</button>
                 </form>
@@ -62,8 +26,7 @@
             </div>
         </div>
     <% } %>
-        <br />
-        <br />
-        <a href="http://localhost:8081/posts/new">Create a post</a>
+    <br><br>
+    <a href="/posts/new">Create a post</a>
 </body>
 </html>

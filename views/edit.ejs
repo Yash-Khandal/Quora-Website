@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Post</title>
-    <link rel="stylesheet" href="/style.css"> <!-- Link to CSS -->
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="edit-form-container">
@@ -12,10 +12,8 @@
         <form method="POST" action="/posts/<%= post.id %>?_method=PATCH">
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" value="<%= post.username %>" readonly>
-
             <label for="content">Content:</label>
             <textarea id="content" name="content"><%= post.content %></textarea>
-
             <button type="submit">Update Post</button>
         </form>
     </div>

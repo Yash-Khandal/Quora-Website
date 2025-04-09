@@ -19,13 +19,13 @@
                 <button class="like-button">Like</button>
             </form>
             <br>
-            <a href="http://localhost:8081/posts/<%=post.id%>/edit">Edit</a>
+            <a href="/posts/<%=post.id%>/edit">Edit</a>
             <form method="post" action="/posts/<%=post.id%>?_method=DELETE">
                 <button>DELETE Post</button>
             </form>
         </div>
     </div>
     <br>
-    <a href="http://localhost:8081/posts">Back to All Posts</a>
+    <a href="/posts">Back to All Posts</a>
 </body>
 </html>
