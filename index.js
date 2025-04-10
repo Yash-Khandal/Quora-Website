@@ -11,38 +11,33 @@ const flash = require('connect-flash');
 
 require("dotenv").config();
 
-// Use environment variable for MongoDB URI with a fallback
-// Using a direct connection string format instead of DNS seedlist format
+// MongoDB Connection URI with fallback
 const uri = process.env.MONGODB_URI || "mongodb+srv://new_user:3e5NBh8w8AXGkKv6@test-pro-db.og6zhht.mongodb.net/?retryWrites=true&w=majority&appName=test-pro-db";
 
 // Configure MongoDB client with appropriate options
 const client = new MongoClient(uri, {
-  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-  socketTimeoutMS: 45000, // Set socket timeout to 45 seconds
-  connectTimeoutMS: 30000, // Connection timeout
-  maxPoolSize: 10, // Maximum number of connections in the connection pool
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 30000,
+    connectTimeoutMS: 10000,
+    maxPoolSize: 10,
+    retryWrites: true,
+    retryReads: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
 
 async function connectToDatabase() {
     try {
-        // Test DNS resolution first
-        console.log("Testing DNS resolution...");
-        try {
-            await dns.promises.lookup('test-pro-db.og6zhht.mongodb.net');
-            console.log("DNS resolution successful");
-        } catch (dnsError) {
-            console.error("DNS resolution failed:", dnsError);
-            console.log("Trying alternative connection method...");
+        if (!client.isConnected) {
+            console.log("Connecting to MongoDB Atlas...");
+            await client.connect();
+            console.log("Successfully connected to MongoDB Atlas");
         }
-        
-        // Attempt to connect to MongoDB
-        console.log("Connecting to MongoDB Atlas...");
-        await client.connect();
-        console.log("Connected to MongoDB Atlas successfully");
         return client.db("quora_db");
     } catch (error) {
         console.error("MongoDB connection error:", error);
-        throw error;
+        // Instead of throwing, return a specific error that we can handle
+        return { error: "Database connection failed" };
     }
 }
 
@@ -80,21 +75,53 @@ app.use(express.static(path.join(__dirname, "public")));
 // Serve favicon
 app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 
-let db;
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Something went wrong!',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+});
 
-// Connect to the database and start the server
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Database connection and server start
+let db;
 connectToDatabase()
     .then(database => {
+        if (database.error) {
+            console.error("Failed to connect to database:", database.error);
+            process.exit(1);
+        }
         db = database;
-        app.locals.db = database;  // Make db available through app.locals
+        app.locals.db = database;
+        
         const PORT = process.env.PORT || 8081;
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        });
     })
     .catch(err => {
         console.error("Failed to start server:", err);
-        console.log("Please check your internet connection and MongoDB Atlas configuration");
-        process.exit(1); // Exit the process if database connection fails
+        process.exit(1);
     });
+
+// Handle process termination
+process.on('SIGINT', async () => {
+    try {
+        await client.close();
+        console.log('MongoDB connection closed');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error closing MongoDB connection:', err);
+        process.exit(1);
+    }
+});
 
 app.get("/", (req, res) => res.redirect("/posts"));
 
