@@ -1,21 +1,22 @@
 {
-  "name": "rest_api",
+  "name": "quora-website",
   "version": "1.0.0",
-  "main": "index.js",
- "scripts": {
-  "start": "node index.js",
-  "build": "echo 'No build step needed"
-},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "connect-flash": "^0.1.1",
+    "connect-mongo": "^5.1.0",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
-    "express": "^4.21.2",
+    "express": "^4.19.2",
+    "express-session": "^1.18.1",
     "method-override": "^3.0.0",
-    "socket.io": "^4.8.1",
-    "uuid": "^11.0.5"
+    "mongodb": "^6.15.0",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "serve-favicon": "^2.5.0",
+    "uuid": "^9.0.1"
   }
 }

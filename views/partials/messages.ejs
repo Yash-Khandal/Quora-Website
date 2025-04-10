@@ -1,0 +1,13 @@
+<!-- Display error messages -->
+<% if (locals.error && error.length > 0) { %>
+    <div class="alert alert-danger" role="alert">
+        <%= error %>
+    </div>
+<% } %>
+
+<!-- Display success messages -->
+<% if (locals.success && success.length > 0) { %>
+    <div class="alert alert-success" role="alert">
+        <%= success %>
+    </div>
+<% } %> 
