@@ -14,77 +14,79 @@ require("dotenv").config();
 // MongoDB Connection URI with fallback
 const uri = process.env.MONGODB_URI || "mongodb+srv://new_user:3e5NBh8w8AXGkKv6@test-pro-db.og6zhht.mongodb.net/?retryWrites=true&w=majority&appName=test-pro-db";
 
-// Configure MongoDB client with appropriate options for serverless
+// Configure MongoDB client with appropriate options
 const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 30000,
     connectTimeoutMS: 10000,
     maxPoolSize: 10,
-    minPoolSize: 0,
-    maxIdleTimeMS: 10000,
     retryWrites: true,
     retryReads: true,
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    heartbeatFrequencyMS: 10000,
-    serverMonitoringMode: 'stream'
+    useUnifiedTopology: true
 });
 
-let db = null;
-
 async function connectToDatabase() {
-    if (db) {
-        console.log('Using existing database connection');
-        return db;
-    }
-
     try {
-        console.log('Attempting to connect to MongoDB...');
-        await client.connect();
-        console.log('Connected to MongoDB successfully');
-        db = client.db("quora_db");
-        return db;
+        if (!client.isConnected) {
+            console.log("Connecting to MongoDB Atlas...");
+            await client.connect();
+            console.log("Successfully connected to MongoDB Atlas");
+        }
+        return client.db("quora_db");
     } catch (error) {
-        console.error('MongoDB connection error:', error);
-        // Don't throw the error, return null instead
-        return null;
+        console.error("MongoDB connection error:", error);
+        // Instead of throwing, return a specific error that we can handle
+        return { error: "Database connection failed" };
     }
 }
 
-// Middleware to ensure database connection
-const withDB = async (req, res, next) => {
-    try {
-        if (!req.app.locals.db) {
-            console.log('No database connection found, attempting to reconnect...');
-            const db = await connectToDatabase();
-            if (!db) {
-                throw new Error('Failed to establish database connection');
-            }
-            req.app.locals.db = db;
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Something went wrong!',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Database connection and server start
+let db;
+connectToDatabase()
+    .then(database => {
+        if (database.error) {
+            console.error("Failed to connect to database:", database.error);
+            process.exit(1);
         }
-        next();
-    } catch (error) {
-        console.error('Database middleware error:', error);
-        res.status(500).render('error', { 
-            error: 'Database connection error',
-            message: 'Unable to connect to the database. Please try again later.'
-        });
-    }
-};
-
-// Apply database middleware to all routes
-app.use(withDB);
-
-// Initialize database connection
-connectToDatabase().then(database => {
-    if (database) {
+        db = database;
         app.locals.db = database;
-        console.log('Database initialized successfully');
-    } else {
-        console.error('Failed to initialize database connection');
+        
+        const PORT = process.env.PORT || 8081;
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        });
+    })
+    .catch(err => {
+        console.error("Failed to start server:", err);
+        process.exit(1);
+    });
+
+// Handle process termination
+process.on('SIGINT', async () => {
+    try {
+        await client.close();
+        console.log('MongoDB connection closed');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error closing MongoDB connection:', err);
+        process.exit(1);
     }
-}).catch(err => {
-    console.error('Database initialization error:', err);
 });
 
 app.use(express.urlencoded({ extended: true }));
@@ -120,36 +122,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Serve favicon
 app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).render('error', { 
-        error: 'Something went wrong!',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-    });
-});
-
-// Health check endpoint
-app.get('/health', async (req, res) => {
-    try {
-        const db = await connectToDatabase();
-        if (!db) {
-            throw new Error('Database connection failed');
-        }
-        res.status(200).json({ 
-            status: 'OK', 
-            database: 'connected',
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'ERROR', 
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
 
 app.get("/", (req, res) => res.redirect("/posts"));
 
@@ -222,7 +194,7 @@ app.post("/posts", isAuthenticated, async (req, res) => {
             createdAt: new Date(), 
             likes: 0 
         };
-        await req.app.locals.db.collection("posts").insertOne(newPost);
+        await db.collection("posts").insertOne(newPost);
         req.flash('success', 'Post created successfully');
         res.redirect("/posts");
     } catch (error) {
@@ -236,7 +208,7 @@ app.patch("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
         const newContent = req.body.content;
-        await req.app.locals.db.collection("posts").updateOne({ id }, { $set: { content: newContent } });
+        await db.collection("posts").updateOne({ id }, { $set: { content: newContent } });
         req.flash('success', 'Post updated successfully');
         res.redirect(`/posts/${id}`);
     } catch (error) {
@@ -249,7 +221,7 @@ app.patch("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
 app.get("/posts/:id/edit", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await req.app.locals.db.collection("posts").findOne({ id });
+        const post = await db.collection("posts").findOne({ id });
         if (post) {
             res.render("edit.ejs", { post, title: "Edit Post" });
         } else {
@@ -285,7 +257,7 @@ app.get("/posts/:id", async (req, res) => {
 app.delete("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
-        await req.app.locals.db.collection("posts").deleteOne({ id });
+        await db.collection("posts").deleteOne({ id });
         req.flash('success', 'Post deleted successfully');
         res.redirect("/posts");
     } catch (error) {
