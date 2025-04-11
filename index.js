@@ -14,29 +14,41 @@ require("dotenv").config();
 // MongoDB Connection URI with fallback
 const uri = process.env.MONGODB_URI || "mongodb+srv://new_user:3e5NBh8w8AXGkKv6@test-pro-db.og6zhht.mongodb.net/?retryWrites=true&w=majority&appName=test-pro-db";
 
-// Configure MongoDB client with appropriate options
+// Configure MongoDB client with appropriate options for serverless
 const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 30000,
     connectTimeoutMS: 10000,
     maxPoolSize: 10,
+    minPoolSize: 0,
+    maxIdleTimeMS: 10000,
     retryWrites: true,
     retryReads: true,
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    heartbeatFrequencyMS: 10000,
+    serverMonitoringMode: 'stream'
 });
 
+let cachedDb = null;
+
 async function connectToDatabase() {
+    if (cachedDb) {
+        console.log('Using cached database connection');
+        return cachedDb;
+    }
+
     try {
-        if (!client.isConnected) {
-            console.log("Connecting to MongoDB Atlas...");
-            await client.connect();
-            console.log("Successfully connected to MongoDB Atlas");
-        }
-        return client.db("quora_db");
+        console.log("Connecting to MongoDB Atlas...");
+        await client.connect();
+        console.log("Successfully connected to MongoDB Atlas");
+        
+        // Cache the database connection
+        cachedDb = client.db("quora_db");
+        return cachedDb;
     } catch (error) {
         console.error("MongoDB connection error:", error);
-        // Instead of throwing, return a specific error that we can handle
+        // Return a specific error that we can handle
         return { error: "Database connection failed" };
     }
 }
@@ -85,8 +97,28 @@ app.use((err, req, res, next) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        if (db.error) {
+            return res.status(500).json({ 
+                status: 'ERROR', 
+                message: 'Database connection failed',
+                timestamp: new Date().toISOString()
+            });
+        }
+        res.status(200).json({ 
+            status: 'OK', 
+            database: 'connected',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'ERROR', 
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Database connection and server start
@@ -95,7 +127,10 @@ connectToDatabase()
     .then(database => {
         if (database.error) {
             console.error("Failed to connect to database:", database.error);
-            process.exit(1);
+            // Don't exit in production, let the health check handle it
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(1);
+            }
         }
         db = database;
         app.locals.db = database;
@@ -108,7 +143,9 @@ connectToDatabase()
     })
     .catch(err => {
         console.error("Failed to start server:", err);
-        process.exit(1);
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
     });
 
 // Handle process termination
