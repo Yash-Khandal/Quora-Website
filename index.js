@@ -4,8 +4,6 @@ const path = require("path");
 const { MongoClient, ObjectId } = require("mongodb");
 const { v4: uuidv4 } = require("uuid");
 const methodOverride = require("method-override");
-const dns = require('dns');
-const favicon = require('serve-favicon');
 const session = require('express-session');
 const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
@@ -133,9 +131,6 @@ app.use((req, res, next) => {
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
-
-// Serve favicon
-app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 
 app.get("/", (req, res) => res.redirect("/posts"));
 

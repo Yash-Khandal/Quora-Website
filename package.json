@@ -1,7 +1,7 @@
 {
   "name": "rest_api",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Quora-like Q&A platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -26,6 +26,6 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=16.0.0"
   }
 }
