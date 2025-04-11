@@ -101,7 +101,8 @@ app.use(session({
         dbName: 'quora_db',
         collectionName: 'sessions',
         ttl: 24 * 60 * 60, // 1 day
-        autoRemove: 'native'
+        autoRemove: 'native',
+        touchAfter: 24 * 3600 // 24 hours
     }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
@@ -110,6 +111,13 @@ app.use(session({
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
+
+// Debug middleware to log session info
+app.use((req, res, next) => {
+    console.log('Session ID:', req.sessionID);
+    console.log('Session User:', req.session.user);
+    next();
+});
 
 // Flash messages middleware
 app.use(flash());

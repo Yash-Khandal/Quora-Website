@@ -66,6 +66,7 @@ router.post('/login', async (req, res) => {
                 return res.redirect('/auth/login');
             }
 
+            console.log('User logged in:', req.session.user);
             req.flash('success', 'Successfully logged in!');
             res.redirect('/posts');
         });
