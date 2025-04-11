@@ -87,6 +87,26 @@ app.use(express.static(path.join(__dirname, "public")));
 // Serve favicon
 app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 
+// Middleware to ensure database connection
+const withDB = async (req, res, next) => {
+    try {
+        if (!req.app.locals.db) {
+            const db = await connectToDatabase();
+            if (db.error) {
+                throw new Error('Database connection failed');
+            }
+            req.app.locals.db = db;
+        }
+        next();
+    } catch (error) {
+        console.error('Database middleware error:', error);
+        res.status(500).json({ error: 'Database connection error' });
+    }
+};
+
+// Apply database middleware to all routes
+app.use(withDB);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -206,11 +226,12 @@ app.get("/posts/new", isAuthenticated, (req, res) => res.render("new.ejs", { tit
 
 app.get("/posts", async (req, res) => {
     try {
-        const posts = await db.collection("posts").find().toArray();
+        const posts = await req.app.locals.db.collection("posts").find().toArray();
         res.render("index.ejs", { posts, title: "All Posts" });
     } catch (error) {
         console.error("Error fetching posts:", error);
-        res.status(500).send("Error fetching posts");
+        req.flash('error', 'Error fetching posts');
+        res.redirect('/');
     }
 });
 
@@ -225,7 +246,7 @@ app.post("/posts", isAuthenticated, async (req, res) => {
             createdAt: new Date(), 
             likes: 0 
         };
-        await db.collection("posts").insertOne(newPost);
+        await req.app.locals.db.collection("posts").insertOne(newPost);
         req.flash('success', 'Post created successfully');
         res.redirect("/posts");
     } catch (error) {
@@ -239,7 +260,7 @@ app.patch("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
         const newContent = req.body.content;
-        await db.collection("posts").updateOne({ id }, { $set: { content: newContent } });
+        await req.app.locals.db.collection("posts").updateOne({ id }, { $set: { content: newContent } });
         req.flash('success', 'Post updated successfully');
         res.redirect(`/posts/${id}`);
     } catch (error) {
@@ -252,7 +273,7 @@ app.patch("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
 app.get("/posts/:id/edit", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await db.collection("posts").findOne({ id });
+        const post = await req.app.locals.db.collection("posts").findOne({ id });
         if (post) {
             res.render("edit.ejs", { post, title: "Edit Post" });
         } else {
@@ -269,30 +290,26 @@ app.get("/posts/:id/edit", isAuthenticated, isPostOwner, async (req, res) => {
 app.get("/posts/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await db.collection("posts").findOne({ id });
-        
-        // Get comments for this post
-        const comments = await db.collection("comments").find({ postId: id }).toArray();
+        const post = await req.app.locals.db.collection("posts").findOne({ id });
+        const comments = await req.app.locals.db.collection("comments").find({ postId: id }).toArray();
         
         if (post) {
-            res.render("show.ejs", { 
-                post, 
-                comments, 
-                title: "Post Details" 
-            });
+            res.render("show.ejs", { post, comments, title: "Post Details" });
         } else {
-            res.status(404).send("Post not found");
+            req.flash('error', 'Post not found');
+            res.redirect('/posts');
         }
     } catch (error) {
         console.error("Error fetching post:", error);
-        res.status(500).send("Error fetching post");
+        req.flash('error', 'Error fetching post');
+        res.redirect('/posts');
     }
 });
 
 app.delete("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
     try {
         const { id } = req.params;
-        await db.collection("posts").deleteOne({ id });
+        await req.app.locals.db.collection("posts").deleteOne({ id });
         req.flash('success', 'Post deleted successfully');
         res.redirect("/posts");
     } catch (error) {
@@ -305,14 +322,18 @@ app.delete("/posts/:id", isAuthenticated, isPostOwner, async (req, res) => {
 app.post("/posts/:id/like", async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await db.collection("posts").findOne({ id });
+        const post = await req.app.locals.db.collection("posts").findOne({ id });
         if (post) {
-            await db.collection("posts").updateOne({ id }, { $set: { likes: post.likes + 1 } });
+            await req.app.locals.db.collection("posts").updateOne(
+                { id }, 
+                { $set: { likes: post.likes + 1 } }
+            );
         }
         res.redirect(`/posts/${id}`);
     } catch (error) {
         console.error("Error liking post:", error);
-        res.status(500).send("Error liking post");
+        req.flash('error', 'Error liking post');
+        res.redirect('/posts');
     }
 });
 
@@ -334,7 +355,7 @@ app.post("/posts/:id/comments", async (req, res) => {
         };
         
         // Insert comment into database
-        await db.collection("comments").insertOne(newComment);
+        await req.app.locals.db.collection("comments").insertOne(newComment);
         
         // Redirect back to post
         res.redirect(`/posts/${id}`);
@@ -348,11 +369,11 @@ app.post("/posts/:id/comments", async (req, res) => {
 app.post("/comments/:id/like", async (req, res) => {
     try {
         const { id } = req.params;
-        const comment = await db.collection("comments").findOne({ id });
+        const comment = await req.app.locals.db.collection("comments").findOne({ id });
         
         if (comment) {
             // Update comment likes
-            await db.collection("comments").updateOne({ id }, { $set: { likes: comment.likes + 1 } });
+            await req.app.locals.db.collection("comments").updateOne({ id }, { $set: { likes: comment.likes + 1 } });
             
             // Redirect back to post
             res.redirect(`/posts/${comment.postId}`);
@@ -369,11 +390,11 @@ app.post("/comments/:id/like", async (req, res) => {
 app.delete("/comments/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const comment = await db.collection("comments").findOne({ id });
+        const comment = await req.app.locals.db.collection("comments").findOne({ id });
         
         if (comment) {
             // Delete comment
-            await db.collection("comments").deleteOne({ id });
+            await req.app.locals.db.collection("comments").deleteOne({ id });
             
             // Redirect back to post
             res.redirect(`/posts/${comment.postId}`);
