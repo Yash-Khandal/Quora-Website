@@ -30,26 +30,35 @@ const client = new MongoClient(uri, {
     serverMonitoringMode: 'stream'
 });
 
-let cachedDb = null;
+let db = null;
 
 async function connectToDatabase() {
-    if (cachedDb) {
-        console.log('Using cached database connection');
-        return cachedDb;
+    if (db) {
+        console.log('Using existing database connection');
+        return db;
     }
 
     try {
-        console.log("Connecting to MongoDB Atlas...");
+        console.log('Attempting to connect to MongoDB...');
         await client.connect();
-        console.log("Successfully connected to MongoDB Atlas");
-        
-        // Cache the database connection
-        cachedDb = client.db("quora_db");
-        return cachedDb;
+        console.log('Connected to MongoDB successfully');
+        db = client.db("quora_db");
+        return db;
     } catch (error) {
-        console.error("MongoDB connection error:", error);
-        // Return a specific error that we can handle
-        return { error: "Database connection failed" };
+        console.error('MongoDB connection error:', error);
+        throw error;
+    }
+}
+
+// Initialize database connection before starting the server
+async function initializeDatabase() {
+    try {
+        db = await connectToDatabase();
+        app.locals.db = db;
+        console.log('Database initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize database:', error);
+        process.exit(1);
     }
 }
 
@@ -91,11 +100,8 @@ app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 const withDB = async (req, res, next) => {
     try {
         if (!req.app.locals.db) {
-            const db = await connectToDatabase();
-            if (db.error) {
-                throw new Error('Database connection failed');
-            }
-            req.app.locals.db = db;
+            console.log('No database connection found, attempting to reconnect...');
+            req.app.locals.db = await connectToDatabase();
         }
         next();
     } catch (error) {
@@ -120,13 +126,6 @@ app.use((err, req, res, next) => {
 app.get('/health', async (req, res) => {
     try {
         const db = await connectToDatabase();
-        if (db.error) {
-            return res.status(500).json({ 
-                status: 'ERROR', 
-                message: 'Database connection failed',
-                timestamp: new Date().toISOString()
-            });
-        }
         res.status(200).json({ 
             status: 'OK', 
             database: 'connected',
@@ -141,43 +140,15 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Database connection and server start
-let db;
-connectToDatabase()
-    .then(database => {
-        if (database.error) {
-            console.error("Failed to connect to database:", database.error);
-            // Don't exit in production, let the health check handle it
-            if (process.env.NODE_ENV !== 'production') {
-                process.exit(1);
-            }
-        }
-        db = database;
-        app.locals.db = database;
-        
-        const PORT = process.env.PORT || 8081;
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-        });
-    })
-    .catch(err => {
-        console.error("Failed to start server:", err);
-        if (process.env.NODE_ENV !== 'production') {
-            process.exit(1);
-        }
+// Initialize database before starting the server
+initializeDatabase().then(() => {
+    const PORT = process.env.PORT || 8081;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
     });
-
-// Handle process termination
-process.on('SIGINT', async () => {
-    try {
-        await client.close();
-        console.log('MongoDB connection closed');
-        process.exit(0);
-    } catch (err) {
-        console.error('Error closing MongoDB connection:', err);
-        process.exit(1);
-    }
+}).catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
 
 app.get("/", (req, res) => res.redirect("/posts"));
@@ -226,6 +197,9 @@ app.get("/posts/new", isAuthenticated, (req, res) => res.render("new.ejs", { tit
 
 app.get("/posts", async (req, res) => {
     try {
+        if (!req.app.locals.db) {
+            throw new Error('Database connection not available');
+        }
         const posts = await req.app.locals.db.collection("posts").find().toArray();
         res.render("index.ejs", { posts, title: "All Posts" });
     } catch (error) {
