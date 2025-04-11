@@ -91,7 +91,7 @@ app.use(methodOverride("_method"));
 
 // Session configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -103,17 +103,19 @@ app.use(session({
         touchAfter: 24 * 3600 // 24 hours
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Set to false since Render doesn't provide HTTPS by default
         maxAge: 24 * 60 * 60 * 1000, // 1 day
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    }
+        sameSite: 'lax'
+    },
+    proxy: true // Trust the reverse proxy
 }));
 
 // Debug middleware to log session info
 app.use((req, res, next) => {
     console.log('Session ID:', req.sessionID);
     console.log('Session User:', req.session.user);
+    console.log('Cookies:', req.headers.cookie);
     next();
 });
 

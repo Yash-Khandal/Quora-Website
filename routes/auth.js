@@ -52,23 +52,31 @@ router.post('/login', async (req, res) => {
         }
 
         // Set user session
-        req.session.user = {
-            id: foundUser.id,
-            username: foundUser.username,
-            email: foundUser.email
-        };
-
-        // Save session
-        req.session.save((err) => {
+        req.session.regenerate((err) => {
             if (err) {
-                console.error('Session save error:', err);
+                console.error('Session regeneration error:', err);
                 req.flash('error', 'Error during login');
                 return res.redirect('/auth/login');
             }
 
-            console.log('User logged in:', req.session.user);
-            req.flash('success', 'Successfully logged in!');
-            res.redirect('/posts');
+            req.session.user = {
+                id: foundUser.id,
+                username: foundUser.username,
+                email: foundUser.email
+            };
+
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    req.flash('error', 'Error during login');
+                    return res.redirect('/auth/login');
+                }
+
+                console.log('Session saved successfully');
+                console.log('User session data:', req.session.user);
+                req.flash('success', 'Successfully logged in!');
+                res.redirect('/posts');
+            });
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -79,14 +87,10 @@ router.post('/login', async (req, res) => {
 
 // Logout
 router.get('/logout', (req, res) => {
-    // Destroy session first
     req.session.destroy((err) => {
         if (err) {
-            return res.redirect('/posts');
+            console.error('Logout error:', err);
         }
-        // Clear the cookie
-        res.clearCookie('connect.sid');
-        // Redirect to posts page
         res.redirect('/posts');
     });
 });
