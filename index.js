@@ -27,9 +27,7 @@ const client = new MongoClient(uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     heartbeatFrequencyMS: 10000,
-    serverMonitoringMode: 'stream',
-    dnsCache: true,
-    dnsCacheTTL: 300000 // 5 minutes
+    serverMonitoringMode: 'stream'
 });
 
 let db = null;
