@@ -7,6 +7,11 @@ body {
 .navbar {
     background: #0095f6 !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0 !important;
+}
+
+.container {
+    padding-top: 20px;
 }
 
 .navbar-brand {
