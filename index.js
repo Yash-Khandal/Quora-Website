@@ -27,7 +27,9 @@ const client = new MongoClient(uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     heartbeatFrequencyMS: 10000,
-    serverMonitoringMode: 'stream'
+    serverMonitoringMode: 'stream',
+    dnsCache: true,
+    dnsCacheTTL: 300000 // 5 minutes
 });
 
 let db = null;
@@ -46,21 +48,46 @@ async function connectToDatabase() {
         return db;
     } catch (error) {
         console.error('MongoDB connection error:', error);
-        throw error;
+        // Don't throw the error, return null instead
+        return null;
     }
 }
 
-// Initialize database connection before starting the server
-async function initializeDatabase() {
+// Middleware to ensure database connection
+const withDB = async (req, res, next) => {
     try {
-        db = await connectToDatabase();
-        app.locals.db = db;
-        console.log('Database initialized successfully');
+        if (!req.app.locals.db) {
+            console.log('No database connection found, attempting to reconnect...');
+            const db = await connectToDatabase();
+            if (!db) {
+                throw new Error('Failed to establish database connection');
+            }
+            req.app.locals.db = db;
+        }
+        next();
     } catch (error) {
-        console.error('Failed to initialize database:', error);
-        process.exit(1);
+        console.error('Database middleware error:', error);
+        res.status(500).render('error', { 
+            error: 'Database connection error',
+            message: 'Unable to connect to the database. Please try again later.'
+        });
     }
-}
+};
+
+// Apply database middleware to all routes
+app.use(withDB);
+
+// Initialize database connection
+connectToDatabase().then(database => {
+    if (database) {
+        app.locals.db = database;
+        console.log('Database initialized successfully');
+    } else {
+        console.error('Failed to initialize database connection');
+    }
+}).catch(err => {
+    console.error('Database initialization error:', err);
+});
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -96,27 +123,10 @@ app.use(express.static(path.join(__dirname, "public")));
 // Serve favicon
 app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 
-// Middleware to ensure database connection
-const withDB = async (req, res, next) => {
-    try {
-        if (!req.app.locals.db) {
-            console.log('No database connection found, attempting to reconnect...');
-            req.app.locals.db = await connectToDatabase();
-        }
-        next();
-    } catch (error) {
-        console.error('Database middleware error:', error);
-        res.status(500).json({ error: 'Database connection error' });
-    }
-};
-
-// Apply database middleware to all routes
-app.use(withDB);
-
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ 
+    res.status(500).render('error', { 
         error: 'Something went wrong!',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
@@ -126,6 +136,9 @@ app.use((err, req, res, next) => {
 app.get('/health', async (req, res) => {
     try {
         const db = await connectToDatabase();
+        if (!db) {
+            throw new Error('Database connection failed');
+        }
         res.status(200).json({ 
             status: 'OK', 
             database: 'connected',
@@ -138,17 +151,6 @@ app.get('/health', async (req, res) => {
             timestamp: new Date().toISOString()
         });
     }
-});
-
-// Initialize database before starting the server
-initializeDatabase().then(() => {
-    const PORT = process.env.PORT || 8081;
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-    });
-}).catch(err => {
-    console.error('Failed to start server:', err);
-    process.exit(1);
 });
 
 app.get("/", (req, res) => res.redirect("/posts"));
@@ -204,8 +206,10 @@ app.get("/posts", async (req, res) => {
         res.render("index.ejs", { posts, title: "All Posts" });
     } catch (error) {
         console.error("Error fetching posts:", error);
-        req.flash('error', 'Error fetching posts');
-        res.redirect('/');
+        res.status(500).render('error', { 
+            error: 'Error fetching posts',
+            message: 'Unable to fetch posts. Please try again later.'
+        });
     }
 });
 
