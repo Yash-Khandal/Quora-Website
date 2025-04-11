@@ -100,13 +100,14 @@ app.use(session({
         client: client,
         dbName: 'quora_db',
         collectionName: 'sessions',
-        ttl: 24 * 60 * 60 // 1 day
+        ttl: 24 * 60 * 60, // 1 day
+        autoRemove: 'native'
     }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
         httpOnly: true,
-        sameSite: 'lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
 
