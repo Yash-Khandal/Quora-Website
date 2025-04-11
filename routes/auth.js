@@ -52,29 +52,22 @@ router.post('/login', async (req, res) => {
         }
 
         // Set user session
-        req.session.regenerate((err) => {
+        req.session.user = {
+            id: foundUser.id,
+            username: foundUser.username,
+            email: foundUser.email
+        };
+
+        // Save session
+        req.session.save((err) => {
             if (err) {
-                console.error('Session regeneration error:', err);
+                console.error('Session save error:', err);
                 req.flash('error', 'Error during login');
                 return res.redirect('/auth/login');
             }
 
-            req.session.user = {
-                id: foundUser.id,
-                username: foundUser.username,
-                email: foundUser.email
-            };
-
-            req.session.save((err) => {
-                if (err) {
-                    console.error('Session save error:', err);
-                    req.flash('error', 'Error during login');
-                    return res.redirect('/auth/login');
-                }
-
-                req.flash('success', 'Successfully logged in!');
-                res.redirect('/posts');
-            });
+            req.flash('success', 'Successfully logged in!');
+            res.redirect('/posts');
         });
     } catch (error) {
         console.error('Login error:', error);

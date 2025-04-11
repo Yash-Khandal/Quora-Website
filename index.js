@@ -13,7 +13,7 @@ const MongoStore = require('connect-mongo');
 require("dotenv").config();
 
 // MongoDB Connection URI with fallback
-const uri = process.env.MONGODB_URI || "mongodb+srv://new_user:3e5NBh8w8AXGkKv6@test-pro-db.og6zhht.mongodb.net/?retryWrites=true&w=majority&appName=test-pro-db";
+const uri = process.env.MONGODB_URI;
 
 // Configure MongoDB client with appropriate options
 const client = new MongoClient(uri, {
@@ -35,7 +35,6 @@ async function connectToDatabase() {
         return client.db("quora_db");
     } catch (error) {
         console.error("MongoDB connection error:", error);
-        // Instead of throwing, return a specific error that we can handle
         return { error: "Database connection failed" };
     }
 }
@@ -65,7 +64,7 @@ connectToDatabase()
         db = database;
         app.locals.db = database;
         
-        const PORT = process.env.PORT || 8081;
+        const PORT = process.env.PORT || 3000;
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -92,9 +91,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 
-// Session configuration with MongoDB store
+// Session configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -106,14 +105,15 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000, // 1 day
-        httpOnly: true
+        httpOnly: true,
+        sameSite: 'lax'
     }
 }));
 
 // Flash messages middleware
 app.use(flash());
 
-// Make flash messages available to all templates
+// Make user and flash messages available to all templates
 app.use((req, res, next) => {
     res.locals.user = req.session.user || null;
     res.locals.error = req.flash('error');
