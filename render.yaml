@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: quora-website
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true 
