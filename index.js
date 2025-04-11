@@ -8,6 +8,7 @@ const dns = require('dns');
 const favicon = require('serve-favicon');
 const session = require('express-session');
 const flash = require('connect-flash');
+const MongoStore = require('connect-mongo');
 
 require("dotenv").config();
 
@@ -21,9 +22,7 @@ const client = new MongoClient(uri, {
     connectTimeoutMS: 10000,
     maxPoolSize: 10,
     retryWrites: true,
-    retryReads: true,
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+    retryReads: true
 });
 
 async function connectToDatabase() {
@@ -93,16 +92,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 
-// Session configuration - MUST be before any route handling
+// Session configuration with MongoDB store
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        client: client,
+        dbName: 'quora_db',
+        collectionName: 'sessions',
+        ttl: 24 * 60 * 60 // 1 day
+    }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    },
-    name: 'connect.sid' // Session cookie name
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        httpOnly: true
+    }
 }));
 
 // Flash messages middleware
